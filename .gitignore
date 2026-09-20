@@ -12,3 +12,4 @@ src/*.backup
 src/*.before_*
 src/*telegram_backup*
 src/telegram_control.py*
+src/telegram_bot.py
