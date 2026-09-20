@@ -1,0 +1,8 @@
+.env
+wallet/private_key.secret
+wallet/config.json
+.venv/
+__pycache__/
+*.pyc
+logs/
+data/bot.pid
