@@ -2,7 +2,11 @@
 wallet/private_key.secret
 wallet/config.json
 .venv/
-__pycache__/
-*.pyc
+node_modules/
 logs/
 data/bot.pid
+data/project_states*.json
+src/*.backup
+src/*.before_*
+src/telegram_bot.py
+src/telegram_control.py
