@@ -6,6 +6,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PORT = int(os.environ.get("PORT", "10000"))
 
+import sys
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 # Import the existing paper-only bot engine. It remains the single source of truth.
 from src import main as bot_main
 
