@@ -2,240 +2,38 @@ package com.ovi.tradingbeast;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.graphics.*;
-import android.view.*;
-import android.content.*;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.*;
+import org.json.*;
+import java.io.*;
+import java.net.*;
+import java.util.concurrent.*;
 
 public class MainActivity extends Activity {
-
-    @Override
-    protected void onCreate(Bundle b) {
-        super.onCreate(b);
-        setContentView(new Dashboard(this));
+    static final String BASE="http://127.0.0.1:8765";
+    final int BG=Color.rgb(7,10,15), CARD=Color.rgb(16,22,31), TEXT=Color.rgb(235,242,248), MUTED=Color.rgb(151,166,181), GREEN=Color.rgb(53,227,154), RED=Color.rgb(255,91,105), BLUE=Color.rgb(91,158,255), BORDER=Color.rgb(38,49,63);
+    LinearLayout root, content, statusDot; TextView status, health, positions, signal, performance, updated, message; EditText amount, maxProjects; Spinner mode; ExecutorService pool=Executors.newSingleThreadExecutor();
+    int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);} TextView tv(String s,float size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setPadding(dp(2),dp(2),dp(2),dp(2));return t;}
+    LinearLayout row(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.HORIZONTAL);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
+    LinearLayout card(String title){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(16),dp(15),dp(16),dp(15));android.graphics.drawable.GradientDrawable g=new android.graphics.drawable.GradientDrawable();g.setColor(CARD);g.setCornerRadius(dp(18));g.setStroke(dp(1),BORDER);c.setBackground(g);c.setLayoutParams(new LinearLayout.LayoutParams(-1,-2){ {setMargins(0,0,0,dp(12));} });TextView h=tv(title,15,TEXT);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);c.addView(h);return c;}
+    Button btn(String label,int color){Button b=new Button(this);b.setText(label);b.setTextColor(Color.WHITE);b.setTextSize(13);b.setAllCaps(false);b.setMinHeight(dp(48));b.setBackgroundColor(color);b.setPadding(dp(8),0,dp(8),0);b.setLayoutParams(new LinearLayout.LayoutParams(0,dp(52),1));return b;}
+    @Override public void onCreate(Bundle b){super.onCreate(b); build(); refresh(); new android.os.Handler().postDelayed(new Runnable(){public void run(){refresh();new android.os.Handler().postDelayed(this,5000);}},5000);}
+    void build(){ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(BG);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(16),dp(18),dp(16),dp(28));scroll.addView(content);setContentView(scroll);
+        TextView brand=tv("OVI PLUS",30,GREEN);brand.setTypeface(Typeface.DEFAULT,Typeface.BOLD);content.addView(brand);TextView sub=tv("TRADING BEAST",18,TEXT);sub.setTypeface(Typeface.DEFAULT,Typeface.BOLD);content.addView(sub);TextView engine=tv("SOLANA MEME-COIN ENGINE  •  PAPER MODE",12,MUTED);engine.setPadding(0,dp(2),0,dp(18));content.addView(engine);
+        LinearLayout sc=card("BOT STATUS");status=tv("Status: connecting…",18,TEXT);status.setTypeface(Typeface.DEFAULT,Typeface.BOLD);sc.addView(status);health=tv("Health: —",13,MUTED);sc.addView(health);content.addView(sc);
+        LinearLayout settings=card("TRADING ALLOCATION");LinearLayout r1=row();amount=new EditText(this);amount.setHint("0.001");amount.setTextColor(TEXT);amount.setHintTextColor(MUTED);amount.setInputType(8194);r1.addView(tv("Amount (SOL)",14,MUTED),new LinearLayout.LayoutParams(0,dp(52),1));r1.addView(amount,new LinearLayout.LayoutParams(dp(130),dp(52)));settings.addView(r1);LinearLayout r2=row();mode=new Spinner(this);ArrayAdapter<String>a=new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"SINGLE","MULTIPLE"});mode.setAdapter(a);maxProjects=new EditText(this);maxProjects.setTextColor(TEXT);maxProjects.setHintTextColor(MUTED);maxProjects.setHint("1");maxProjects.setInputType(2);r2.addView(tv("Position mode",14,MUTED),new LinearLayout.LayoutParams(0,dp(52),1));r2.addView(mode,new LinearLayout.LayoutParams(dp(120),dp(52)));r2.addView(maxProjects,new LinearLayout.LayoutParams(dp(70),dp(52)));settings.addView(r2);Button save=btn("Save settings",Color.rgb(36,103,78));save.setOnClickListener(v->settings());settings.addView(save);content.addView(settings);
+        LinearLayout p=card("ACTIVE POSITIONS");positions=tv("No active position",14,MUTED);p.addView(positions);content.addView(p);
+        LinearLayout sig=card("LATEST SIGNAL");signal=tv("Waiting for scanner…",14,TEXT);sig.addView(signal);content.addView(sig);
+        LinearLayout perf=card("PERFORMANCE");performance=tv("Entries: 0  •  Take profits: 0  •  Rejected: 0",14,TEXT);perf.addView(performance);content.addView(perf);
+        LinearLayout ctl=card("CONTROLS");LinearLayout rr=row();Button start=btn("START",Color.rgb(28,130,91)),stop=btn("STOP",Color.rgb(105,45,55));rr.addView(start);rr.addView(stop);ctl.addView(rr);LinearLayout rr2=row();Button restart=btn("RESTART",Color.rgb(42,87,135)),em=btn("EMERGENCY STOP",Color.rgb(170,50,65));rr2.addView(restart);rr2.addView(em);ctl.addView(rr2);LinearLayout rr3=row();Button resume=btn("RESUME",Color.rgb(42,87,135)),scan=btn("SCAN FRESH",Color.rgb(90,75,36));rr3.addView(resume);rr3.addView(scan);ctl.addView(rr3);Button ref=btn("REFRESH",Color.rgb(40,47,58));ctl.addView(ref);start.setOnClickListener(v->post("/start",null));stop.setOnClickListener(v->post("/stop",null));restart.setOnClickListener(v->post("/restart",null));em.setOnClickListener(v->post("/emergency-stop",null));resume.setOnClickListener(v->post("/resume",null));scan.setOnClickListener(v->post("/scan",null));ref.setOnClickListener(v->refresh());content.addView(ctl);
+        LinearLayout last=card("SYSTEM MESSAGE");message=tv("Bridge: waiting",13,MUTED);last.addView(message);updated=tv("Last update: —",12,MUTED);last.addView(updated);content.addView(last);
     }
-
-    static class Dashboard extends View {
-
-        Paint p = new Paint(1);
-        float d;
-
-        int BG = Color.rgb(8,11,18);
-        int CARD = Color.rgb(17,23,33);
-        int TEXT = Color.WHITE;
-        int MUTED = Color.rgb(145,157,174);
-        int GREEN = Color.rgb(53,227,154);
-        int RED = Color.rgb(255,88,100);
-        int BLUE = Color.rgb(75,155,255);
-
-        Dashboard(Context c) {
-            super(c);
-            d = getResources().getDisplayMetrics().density;
-        }
-
-        float dp(float x) {
-            return x * d;
-        }
-
-        void txt(Canvas c,String s,float x,float y,float size,
-                 int color,boolean bold) {
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(color);
-            p.setTextSize(dp(size));
-            p.setTypeface(Typeface.create(
-                "sans",
-                bold ? Typeface.BOLD : Typeface.NORMAL));
-            c.drawText(s,dp(x),dp(y),p);
-        }
-
-        void card(Canvas c,float l,float t,float r,float b) {
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(CARD);
-            c.drawRoundRect(
-                dp(l),dp(t),dp(r),dp(b),
-                dp(12),dp(12),p);
-        }
-
-        void value(Canvas c,String label,String val,
-                   float x,float y,int color) {
-            txt(c,label,x,y,10,MUTED,true);
-            txt(c,val,x,y+22,16,color,true);
-        }
-
-        @Override
-        protected void onDraw(Canvas c) {
-
-            c.drawColor(BG);
-
-            float w = getWidth()/d;
-            float y = 32;
-
-            txt(c,"OVI PLUS",18,y,12,GREEN,true);
-            txt(c,"TRADING BEAST",18,y+29,25,TEXT,true);
-            txt(c,"SOLANA MEME-COIN ENGINE",
-                18,y+49,10,MUTED,true);
-
-            p.setColor(GREEN);
-            p.setStyle(Paint.Style.FILL);
-            c.drawCircle(dp(w-32),dp(37),dp(6),p);
-
-            txt(c,"RUNNING",w-92,42,11,GREEN,true);
-
-            y = 105;
-
-            card(c,14,y,w-14,y+72);
-
-            txt(c,"BOT STATUS",28,y+25,10,MUTED,true);
-            txt(c,"RUNNING",28,y+50,18,GREEN,true);
-
-            txt(c,"MODE",w/2,y+25,10,MUTED,true);
-            txt(c,"PAPER TRADING",
-                w/2,y+50,15,BLUE,true);
-
-            y += 92;
-
-            txt(c,"CURRENT POSITION",18,y,13,TEXT,true);
-
-            card(c,14,y+15,w-14,y+105);
-
-            txt(c,"NONE",28,y+50,21,MUTED,true);
-
-            txt(c,"Waiting for qualified token...",
-                28,y+74,12,MUTED,false);
-
-            y += 125;
-
-            txt(c,"TRADING ENGINE",18,y,13,TEXT,true);
-
-            card(c,14,y+15,w-14,y+145);
-
-            float col = w/2;
-
-            value(c,"WALLET BALANCE",
-                "0.008470 SOL",28,y+44,TEXT);
-
-            value(c,"TAKE PROFIT",
-                "+17%",col,y+44,GREEN);
-
-            value(c,"ENTRY PRICE",
-                "—",28,y+92,MUTED);
-
-            value(c,"CURRENT PRICE",
-                "—",col,y+92,MUTED);
-
-            value(c,"CURRENT P/L",
-                "0.00%",28,y+140,MUTED);
-
-            value(c,"TIME IN POSITION",
-                "—",col,y+140,MUTED);
-
-            y += 170;
-
-            txt(c,"SCANNER",18,y,13,TEXT,true);
-
-            card(c,14,y+15,w-14,y+90);
-
-            p.setColor(GREEN);
-            c.drawCircle(dp(30),dp(y+43),dp(5),p);
-
-            txt(c,"SCANNING FOR QUALIFIED TOKENS",
-                44,y+48,12,TEXT,true);
-
-            txt(c,"Entry score >= 50  |  Buy ratio >= 65%",
-                28,y+73,10,MUTED,false);
-
-            y += 110;
-
-            txt(c,"LATEST SIGNAL",18,y,13,TEXT,true);
-
-            card(c,14,y+15,w-14,y+83);
-
-            txt(c,"WAITING",28,y+45,15,MUTED,true);
-
-            txt(c,"No qualified entry yet",
-                28,y+66,11,MUTED,false);
-
-
-            y += 105;
-
-            txt(c,"PERFORMANCE",18,y,13,TEXT,true);
-
-            card(c,14,y+15,w-14,y+130);
-
-            value(c,"TRADES TAKEN","0",
-                28,y+43,TEXT);
-
-            value(c,"TAKE PROFITS","0",
-                col,y+43,GREEN);
-
-            value(c,"REJECTED","0",
-                28,y+89,MUTED);
-
-            value(c,"WIN RATE","0%",
-                col,y+89,TEXT);
-
-            y += 150;
-
-            txt(c,"BOT HEALTH",18,y,13,TEXT,true);
-
-            card(c,14,y+15,w-14,y+78);
-
-            txt(c,"ENGINE",28,y+40,10,MUTED,true);
-            txt(c,"ONLINE",28,y+59,13,GREEN,true);
-
-            txt(c,"PAPER EXECUTOR",
-                col,y+40,10,MUTED,true);
-
-            txt(c,"READY",
-                col,y+59,13,GREEN,true);
-
-            y += 105;
-
-            txt(c,"CONTROLS",18,y,13,TEXT,true);
-
-            button(c,14,y+15,w/2-7,y+60,
-                "START BOT",GREEN);
-
-            button(c,w/2+7,y+15,w-14,y+60,
-                "STOP BOT",RED);
-
-            button(c,14,y+70,w/2-7,y+115,
-                "RESTART",BLUE);
-
-            button(c,w/2+7,y+70,w-14,y+115,
-                "EMERGENCY STOP",RED);
-
-            y += 145;
-
-            txt(c,"LAST UPDATE",18,y,10,MUTED,true);
-
-            txt(c,"Waiting for bot connection...",
-                18,y+20,11,MUTED,false);
-        }
-
-        void button(Canvas c,float l,float t,float r,float b,
-                    String title,int color) {
-
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(Color.rgb(24,31,43));
-
-            c.drawRoundRect(
-                dp(l),dp(t),dp(r),dp(b),
-                dp(10),dp(10),p);
-
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(dp(1));
-            p.setColor(color);
-
-            c.drawRoundRect(
-                dp(l),dp(t),dp(r),dp(b),
-                dp(10),dp(10),p);
-
-            p.setTextAlign(Paint.Align.CENTER);
-
-            txt(c,title,(l+r)/2,(t+b)/2+4,
-                11,color,true);
-
-            p.setTextAlign(Paint.Align.LEFT);
-        }
-    }
+    void post(String path,String body){pool.execute(()->{try{URL u=new URL(BASE+path);HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setRequestMethod("POST");c.setConnectTimeout(3000);c.setReadTimeout(5000);c.setDoOutput(true);if(body!=null){c.getOutputStream().write(body.getBytes("UTF-8"));}int code=c.getResponseCode();runOnUiThread(()->message.setText("Action "+path+" → "+code));refresh();}catch(Exception e){runOnUiThread(()->message.setText("Bridge unavailable — start android_app/server.py in Termux"));}});}
+    void settings(){try{double v=Double.parseDouble(amount.getText().toString().trim());int m=Integer.parseInt(maxProjects.getText().toString().trim().isEmpty()?"1":maxProjects.getText().toString().trim());String json="{\"trade_amount\":"+v+",\"position_mode\":\""+mode.getSelectedItem().toString()+"\",\"max_active_projects\":"+m+"}";post("/settings",json);}catch(Exception e){message.setText("Enter a valid SOL amount and project limit.");}}
+    void refresh(){pool.execute(()->{try{URL u=new URL(BASE+"/status");HttpURLConnection c=(HttpURLConnection)u.openConnection();c.setConnectTimeout(3000);c.setReadTimeout(5000);BufferedReader br=new BufferedReader(new InputStreamReader(c.getInputStream()));StringBuilder s=new StringBuilder();String line;while((line=br.readLine())!=null)s.append(line);JSONObject all=new JSONObject(s.toString());JSONObject st=all.getJSONObject("state"), set=all.getJSONObject("settings"), stats=st.getJSONObject("stats");runOnUiThread(()->{status.setText("Status: "+st.optString("status","—"));health.setText("Health: "+st.optString("health","—")+(st.optBoolean("emergency_stop",false)?"  •  EMERGENCY STOP":""));amount.setText(String.valueOf(set.optDouble("trade_amount",0.001)));maxProjects.setText(String.valueOf(set.optInt("max_active_projects",1)));mode.setSelection("MULTIPLE".equals(set.optString("position_mode"))?1:0);positions.setText(st.optJSONArray("positions")==null||st.optJSONArray("positions").length()==0?"No active position":st.optJSONArray("positions").toString());JSONObject ls=st.optJSONObject("latest_signal");signal.setText(ls==null?"Waiting for scanner…":ls.toString());performance.setText("Entries: "+stats.optInt("entries")+"  •  Take profits: "+stats.optInt("take_profits")+"  •  Rejected: "+stats.optInt("rejected"));message.setText("Bridge connected • Paper trading ON • Signing OFF • Broadcast OFF");updated.setText("Last update: "+new java.util.Date());});}catch(Exception e){runOnUiThread(()->{status.setText("Status: bridge offline");health.setText("Health: start the Termux bridge");message.setText("Run: python android_app/server.py");});}});}
+    @Override protected void onDestroy(){pool.shutdownNow();super.onDestroy();}
 }
