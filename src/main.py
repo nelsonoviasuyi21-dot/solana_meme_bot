@@ -52,11 +52,26 @@ def scan_candidates():
     return list(r or []),0
 
 def paper_entry(c, amount):
-    cmd=["node","wallet/swap_executor.js",str(c.get("address","")),f"{amount:.9f}"]
-    try:r=subprocess.run(cmd,cwd=ROOT,capture_output=True,text=True,timeout=60)
-    except Exception as e: print(f"PAPER EXECUTOR ERROR | {e}",flush=True); return False
-    print(r.stdout,end="",flush=True); print(r.stderr,end="",flush=True)
-    return r.returncode==0 and "BROADCAST:           DISABLED" in r.stdout and "TRANSACTION SENT:    NO" in r.stdout
+    if not PAPER_TRADING:
+        return False
+
+    symbol = c.get("symbol", "UNKNOWN")
+    address = c.get("address", "")
+
+    print("========================================", flush=True)
+    print(" PAPER ENTRY SIMULATION", flush=True)
+    print("========================================", flush=True)
+    print(f"TOKEN:               {symbol}", flush=True)
+    print(f"ADDRESS:             {address}", flush=True)
+    print(f"TRADE SIZE:          {amount:.6f} SOL", flush=True)
+    print("WALLET:              NOT USED", flush=True)
+    print("SIGNING:             DISABLED", flush=True)
+    print("BROADCAST:           DISABLED", flush=True)
+    print("FUNDS MOVED:         NO", flush=True)
+    print("PAPER ENTRY:         ACCEPTED", flush=True)
+    print("========================================", flush=True)
+
+    return True
 
 def run():
     settings=get_settings(); state=get_state(); state["status"]="RUNNING"; state["health"]="ONLINE"; state["last_error"]=""; set_state(state)
