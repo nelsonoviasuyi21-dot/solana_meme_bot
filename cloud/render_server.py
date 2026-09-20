@@ -7,8 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PORT = int(os.environ.get("PORT", "10000"))
 
 import sys
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+for import_root in (ROOT, ROOT / "src"):
+    if str(import_root) not in sys.path:
+        sys.path.insert(0, str(import_root))
 
 # Import the existing paper-only bot engine. It remains the single source of truth.
 from src import main as bot_main
