@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: ovi-plus-trading-beast
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python cloud/render_server.py
+    healthCheckPath: /health
+    envVars:
+      - key: PAPER_TRADING
+        value: "true"
+      - key: SIGNING_ENABLED
+        value: "false"
+      - key: BROADCAST_ENABLED
+        value: "false"

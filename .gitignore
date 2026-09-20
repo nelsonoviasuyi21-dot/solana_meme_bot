@@ -19,3 +19,7 @@ src/telegram_bot.py
 android_apk/build/
 android_apk/framework/
 Ovi-Plus-Trading-Beast-debug/
+
+# Cloud/runtime state
+cloud/__pycache__/
+*.pyc
