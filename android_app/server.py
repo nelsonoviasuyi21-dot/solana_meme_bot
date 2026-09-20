@@ -11,7 +11,7 @@ PREFIX = os.environ.get("PREFIX", "/data/data/com.termux/files/usr")
 SVDIR = os.environ.get("SVDIR", f"{PREFIX}/var/service")
 
 DEFAULT_SETTINGS = {"trade_amount": 0.001, "unit": "SOL", "position_mode": "SINGLE", "max_active_projects": 1}
-DEFAULT_STATE = {"status": "STOPPED", "emergency_stop": False, "scan_requested": False, "positions": [], "latest_signal": None, "stats": {"entries": 0, "take_profits": 0, "rejected": 0}, "health": "OFFLINE", "last_error": "", "updated_at": 0}
+DEFAULT_STATE = {"status": "STOPPED", "emergency_stop": False, "scan_requested": False, "positions": [], "latest_signal": None, "stats": {"entries": 0, "take_profits": 0, "rejected": 0}, "health": "OFFLINE", "last_error": "", "updated_at": 0, "events": []}
 
 def read_json(path, default):
     try:
@@ -39,6 +39,11 @@ def response_json(handler, code, value):
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args): return
     def do_GET(self):
+        if self.path == "/logs":
+            log = ROOT / "logs" / "bot_console.log"
+            try: lines = log.read_text(errors="replace").splitlines()[-250:]
+            except Exception: lines = []
+            response_json(self, 200, {"ok": True, "lines": lines, "server_time": time.time()}); return
         if self.path in ("/", "/status"):
             response_json(self, 200, {"ok": True, "settings": read_json(SETTINGS, DEFAULT_SETTINGS), "state": state(), "server_time": time.time()}); return
         response_json(self, 404, {"ok": False, "error": "Not found"})

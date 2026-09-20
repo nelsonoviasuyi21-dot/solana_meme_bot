@@ -132,6 +132,8 @@ def run():
                 result = monitor_take_profit(token, float(position["entry_price"]), position.get("entry_number", 1))
                 position.update({"status": "CLOSED", "exit_price": result["exit_price"], "gain_percent": result["gain_percent"], "exit_time": time.time()})
                 state["stats"]["take_profits"] += 1
+                state.setdefault("events", []).append({"type":"TAKE_PROFIT","symbol":position.get("symbol","UNKNOWN"),"gain_percent":result.get("gain_percent"),"timestamp":time.time()})
+                state["events"] = state["events"][-50:]
                 state["positions"] = [p for p in state["positions"] if p.get("status") == "ACTIVE"]
                 set_state(state)
             continue
@@ -181,11 +183,15 @@ def run():
         }
         state["positions"].append(position)
         state["stats"]["entries"] += 1
+        state.setdefault("events", []).append({"type":"TRADE","symbol":position.get("symbol","UNKNOWN"),"amount_sol":settings["trade_amount"],"price":position["entry_price"],"timestamp":time.time()})
+        state["events"] = state["events"][-50:]
         set_state(state)
         result = monitor_take_profit(candidate, position["entry_price"], position["entry_number"])
         position.update({"status": "CLOSED", "exit_price": result["exit_price"], "gain_percent": result["gain_percent"], "exit_time": time.time()})
         state = get_state()
         state["stats"]["take_profits"] += 1
+        state.setdefault("events", []).append({"type":"TAKE_PROFIT","symbol":position.get("symbol","UNKNOWN"),"gain_percent":result.get("gain_percent"),"timestamp":time.time()})
+        state["events"] = state["events"][-50:]
         state["positions"] = []
         set_state(state)
 
