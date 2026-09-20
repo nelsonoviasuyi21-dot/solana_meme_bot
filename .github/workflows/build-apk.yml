@@ -15,5 +15,5 @@ jobs:
       - run: gradle assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: Ovi-Plus-Trading-Beast-v3-debug
+          name: Ovi-Plus-Trading-Beast-v4-debug
           path: android_apk/build/outputs/apk/debug/*.apk
